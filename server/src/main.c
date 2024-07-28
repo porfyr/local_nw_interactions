@@ -7,8 +7,10 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
+#define CONNECTIONS 3
 
-int client_sockets[2] = {0, 0};
+// int client_sockets[CONNECTIONS] = {0, 0};
+int *client_sockets;
 pthread_mutex_t lock;
 
 void *handle_client(void *client_socket) {
@@ -18,9 +20,10 @@ void *handle_client(void *client_socket) {
 
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
+        printf("Зчитав значення у handle_client > while\nbuffer = %s\n", buffer);
 
         pthread_mutex_lock(&lock);
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < CONNECTIONS; i++) {
             if (client_sockets[i] != 0 && client_sockets[i] != sock) {
                 send(client_sockets[i], buffer, strlen(buffer), 0);
             }
@@ -58,12 +61,14 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    pthread_t tid[2];
+    pthread_t tid[CONNECTIONS];
     pthread_mutex_init(&lock, NULL);
+
+    client_sockets = calloc(CONNECTIONS, sizeof(int));
 
     printf("Waiting for connections...\n");
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < CONNECTIONS; i++) {
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
@@ -79,10 +84,11 @@ int main() {
         }
     }
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < CONNECTIONS; i++) {
         pthread_join(tid[i], NULL);
     }
 
+    free(client_sockets);
     pthread_mutex_destroy(&lock);
     close(server_fd);
     return 0;

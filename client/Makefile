@@ -9,7 +9,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
-all: $(BIN_DIR) $(TARGET) $(OBJ_DIR)
+all: $(OBJ_DIR) $(BIN_DIR) $(TARGET)
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)

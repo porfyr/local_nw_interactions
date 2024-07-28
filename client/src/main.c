@@ -16,7 +16,6 @@ void *receive_messages(void *socket) {
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
         printf("Received: %s\n", buffer);
-        printf("You ") ;
     }
 
     return NULL;
