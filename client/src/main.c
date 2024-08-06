@@ -7,6 +7,7 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
+pthread_mutex_t mutex;
 
 void *receive_messages(void *socket) {
     int sock = *((int *)socket);
@@ -15,7 +16,14 @@ void *receive_messages(void *socket) {
 
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
+        // pthread_mutex_lock(&mutex);
+        printf("\e[1A\e[2K\r");
+        // printf("\r");
         printf("Received: %s\n", buffer);
+        // printf("you: ");
+        // usleep(10000);
+        fflush(stdout);
+        // pthread_mutex_unlock(&mutex);
     }
 
     return NULL;
@@ -26,6 +34,7 @@ int main() {
     struct sockaddr_in server_address;
     char buffer[BUFFER_SIZE];
     pthread_t tid;
+    pthread_mutex_init(&mutex, NULL);
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("Socket creation error\n");
@@ -52,11 +61,17 @@ int main() {
 
     while (1) {
         bzero(buffer, BUFFER_SIZE);
+        // printf("\e[1A\e[2K\r");
         printf("You: ");
+        // usleep(10000);
+        // printf("\e[0K");
         fgets(buffer, BUFFER_SIZE, stdin);
         send(sock, buffer, strlen(buffer), 0);
+        // printf("You: ");
+        // printf("\e[1A\e[2K\r");
     }
 
+    pthread_mutex_destroy(&mutex);
     close(sock);
     return 0;
 }

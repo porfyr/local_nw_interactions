@@ -7,32 +7,78 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
-#define CONNECTIONS 3
+#define MAX_CONNECTIONS 3
+// int curr_connections = 0;
 
-// int client_sockets[CONNECTIONS] = {0, 0};
-int *client_sockets;
-pthread_mutex_t lock;
+// int client_sockets[MAX_CONNECTIONS] = {0, 0};
+// int *client_sockets;
+// pthread_mutex_t cs_mutex;
 
-void *handle_client(void *client_socket) {
-    int sock = *((int *)client_socket);
+typedef struct {
+    int *descriptors;   // before was global int *client_sockets
+    pthread_mutex_t mutex;  // before was global pthread_mutex_t cs_mutex;
+    int curr_connections;
+} Client_sockets;
+
+typedef struct {
+    Client_sockets client_sockets;
+    int sock;
+} HC_arg;
+
+void *handle_client(void* vp_hc_arg) {// void *client_socket) {
+    HC_arg hc_arg = *((HC_arg *)vp_hc_arg);
+    // int sock = *((int *)client_socket);
+    Client_sockets client_sockets = hc_arg.client_sockets;
+    int *cs_descriptors = client_sockets.descriptors;
+    int sock = hc_arg.sock;
     char buffer[BUFFER_SIZE];
     int valread;
 
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
-        printf("Зчитав значення у handle_client > while\nbuffer = %s\n", buffer);
+        printf("Зчитав значення у handle_client > while , buffer = %s\n", buffer);
 
-        pthread_mutex_lock(&lock);
-        for (int i = 0; i < CONNECTIONS; i++) {
-            if (client_sockets[i] != 0 && client_sockets[i] != sock) {
-                send(client_sockets[i], buffer, strlen(buffer), 0);
+
+        pthread_mutex_lock(&(client_sockets.mutex));
+        for (int i = 0; i < MAX_CONNECTIONS; i++) {
+            printf("client_sockets[%d] = %d у handle_client()\n", i, cs_descriptors[i]);
+            if (cs_descriptors[i] != 0 && cs_descriptors[i] != sock) {
+                send(cs_descriptors[i], buffer, strlen(buffer), 0);
             }
+            printf("Надіслав\n");
         }
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_unlock(&(client_sockets.mutex));
     }
+
+    if (valread == 0) {
+        printf("Client disconnected, socket = %d\n", sock);
+        -- client_sockets.curr_connections;
+    } else {
+        perror("read");
+    }
+
+    pthread_mutex_lock(&(client_sockets.mutex));
+    for (int i = 0; i < MAX_CONNECTIONS; ++i) {
+        if (cs_descriptors[i] == sock){
+            cs_descriptors[i] = 0;
+        break;
+        }
+    }
+    pthread_mutex_unlock(&(client_sockets.mutex));
+
+    // printf("Кінець виконання handle_client\n");
 
     close(sock);
     return NULL;
+}
+
+int find_first_free_index(int *client_sockets) {
+    for (int i = 0; i < MAX_CONNECTIONS; ++i) {
+        if (client_sockets[i] == 0) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 int main() {
@@ -61,35 +107,52 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    pthread_t tid[CONNECTIONS];
-    pthread_mutex_init(&lock, NULL);
+    pthread_t tid[MAX_CONNECTIONS];
+    // pthread_mutex_init(&cs_mutex, NULL);
 
-    client_sockets = calloc(CONNECTIONS, sizeof(int));
+
+    Client_sockets client_sockets = {
+        .descriptors = (int*)calloc(MAX_CONNECTIONS, sizeof(int)),
+        .curr_connections = 0
+    };
+    pthread_mutex_init(&(client_sockets.mutex), NULL);
+
+    // client_sockets = (int *)calloc(MAX_CONNECTIONS, sizeof(int));
+    // unsigned int curr_clients = 0;
+
 
     printf("Waiting for connections...\n");
-
-    for (int i = 0; i < CONNECTIONS; i++) {
+    
+    for (int i = 0; i < MAX_CONNECTIONS; ++i) {
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
-            perror("accept");
+            perror("socket accept");
             exit(EXIT_FAILURE);
         }
+        ++ client_sockets.curr_connections;
 
-        pthread_mutex_lock(&lock);
-        client_sockets[i] = new_socket;
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_lock(&(client_sockets.mutex));
+        client_sockets.descriptors[find_first_free_index(client_sockets.descriptors)] = new_socket;
+        printf("client_sockets[%d] = %d у main()\n", i, client_sockets.descriptors[i]);
+        pthread_mutex_unlock(&(client_sockets.mutex));
 
-        if (pthread_create(&tid[i], NULL, handle_client, (void *)&new_socket) != 0) {
+        HC_arg hc_arg= {
+            .client_sockets = client_sockets,
+            .sock = new_socket
+        };
+        if (pthread_create(&tid[i], NULL, handle_client, (void *)&hc_arg) != 0) {
             perror("pthread_create");
             exit(EXIT_FAILURE);
         }
     }
 
-    for (int i = 0; i < CONNECTIONS; i++) {
+    printf("Вийшов за цикл CONNECTIONS\n");
+
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
         pthread_join(tid[i], NULL);
     }
 
-    free(client_sockets);
-    pthread_mutex_destroy(&lock);
+    free(client_sockets.descriptors);
+    pthread_mutex_destroy(&(client_sockets.mutex));
     close(server_fd);
     return 0;
 }
