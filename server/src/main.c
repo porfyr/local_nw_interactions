@@ -5,25 +5,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define PORT 8080
-#define BUFFER_SIZE 1024
-#define MAX_CONNECTIONS 3
-// int curr_connections = 0;
-
-// int client_sockets[MAX_CONNECTIONS] = {0, 0};
-// int *client_sockets;
-// pthread_mutex_t cs_mutex;
-
-typedef struct {
-    int *descriptors;   // before was global int *client_sockets
-    pthread_mutex_t mutex;  // before was global pthread_mutex_t cs_mutex;
-    int curr_connections;
-} Client_sockets;
-
-typedef struct {
-    Client_sockets client_sockets;
-    int sock;
-} HC_arg;
+#include "../../defs.h"
 
 void *handle_client(void* vp_hc_arg) {// void *client_socket) {
     HC_arg hc_arg = *((HC_arg *)vp_hc_arg);
@@ -61,7 +43,7 @@ void *handle_client(void* vp_hc_arg) {// void *client_socket) {
     for (int i = 0; i < MAX_CONNECTIONS; ++i) {
         if (cs_descriptors[i] == sock){
             cs_descriptors[i] = 0;
-        break;
+            break;
         }
     }
     pthread_mutex_unlock(&(client_sockets.mutex));
@@ -108,17 +90,12 @@ int main() {
     }
 
     pthread_t tid[MAX_CONNECTIONS];
-    // pthread_mutex_init(&cs_mutex, NULL);
-
 
     Client_sockets client_sockets = {
         .descriptors = (int*)calloc(MAX_CONNECTIONS, sizeof(int)),
         .curr_connections = 0
     };
     pthread_mutex_init(&(client_sockets.mutex), NULL);
-
-    // client_sockets = (int *)calloc(MAX_CONNECTIONS, sizeof(int));
-    // unsigned int curr_clients = 0;
 
 
     printf("Waiting for connections...\n");

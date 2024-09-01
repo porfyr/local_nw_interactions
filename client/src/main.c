@@ -5,8 +5,8 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define PORT 8080
-#define BUFFER_SIZE 1024
+#include "../../defs.h"
+
 pthread_mutex_t mutex;
 
 void *receive_messages(void *socket) {
@@ -30,6 +30,17 @@ void *receive_messages(void *socket) {
 }
 
 int main() {
+    char my_name[NAME_SIZE];
+    char format_string[8];
+    snprintf(format_string, sizeof(format_string), "%%%ds", NAME_SIZE-1);
+    printf("Your name: ");
+    if (scanf(format_string, my_name) < 0)
+        perror("scanf failed");
+    if (!strncmp(my_name, "You:", 5))
+        perror("Name can't be \"You:\"");
+
+    printf("name: %s\n", my_name);
+
     int sock;
     struct sockaddr_in server_address;
     char buffer[BUFFER_SIZE];
@@ -63,9 +74,11 @@ int main() {
         bzero(buffer, BUFFER_SIZE);
         // printf("\e[1A\e[2K\r");
         printf("You: ");
-        // usleep(10000);
-        // printf("\e[0K");
-        fgets(buffer, BUFFER_SIZE, stdin);
+        fgets(buffer, BUFFER_SIZE-NAME_SIZE, stdin);
+        // snprintf(format_string, sizeof(format_string), "%%%ds", NAME_SIZE-1);
+        char msg[BUFFER_SIZE];
+        snprintf(msg, sizeof(msg), "%s: ", my_name);
+        printf("sent msg: %s\n", msg);
         send(sock, buffer, strlen(buffer), 0);
         // printf("You: ");
         // printf("\e[1A\e[2K\r");
@@ -75,3 +88,15 @@ int main() {
     close(sock);
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+// printf("\e[0K"); // Переміщення курсора до кінця рядка
