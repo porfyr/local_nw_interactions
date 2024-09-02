@@ -4,10 +4,17 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "../../defs.h"
 
 pthread_mutex_t mutex;
+
+void get_ready_to_hande() {
+    // printf("\e[1A\e[2K\r"); // Очищення рядка та переміщення курсора на рядок вгору
+    printf("\e[2K\r"); // Очищення рядка та переміщення курсора на початок
+    printf("You: ");
+}
 
 void *receive_messages(void *socket) {
     int sock = *((int *)socket);
@@ -16,14 +23,14 @@ void *receive_messages(void *socket) {
 
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
-            // pthread_mutex_lock(&mutex);
-        // printf("\e[1A\e[2K\r");
-            // printf("\r");
-        printf("%s\n", buffer);
-            // printf("you: ");
-            // usleep(10000);
-        // fflush(stdout);
-            // pthread_mutex_unlock(&mutex);
+            // printf("\r");    // перенести курсор на початок рядка
+        printf("\e[2K\r");
+        printf("%s", buffer);
+        // printf("You: ");
+        // printf("\e[1A");
+        get_ready_to_hande();
+        fflush(stdout);
+        get_ready_to_hande();
     }
 
     return NULL;
@@ -40,6 +47,14 @@ int set_name(char *my_name) {
     return 1;
 }
 
+int finish(pthread_mutex_t mutex, int sock) {
+    pthread_mutex_destroy(&mutex);
+    close(sock);
+    exit(0);
+
+    return 0;
+}
+
 int main() {
     char my_name[NAME_SIZE];
     set_name(&my_name);
@@ -51,6 +66,8 @@ int main() {
     char buffer[BUFFER_SIZE];
     pthread_t tid;
     pthread_mutex_init(&mutex, NULL);
+
+    signal(SIGINT, finish);
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("Socket creation error\n");
@@ -74,24 +91,21 @@ int main() {
         perror("pthread_create");
         return -1;
     }
+    
 
     while (1) {
         bzero(buffer, BUFFER_SIZE);
-        // printf("\e[1A\e[2K\r");
-        printf("You: ");
+        fflush(stdin);
+        get_ready_to_hande();
         fgets(buffer, BUFFER_SIZE-NAME_SIZE, stdin);
-        // snprintf(format_string, sizeof(format_string), "%%%ds", NAME_SIZE-1);
         char msg[BUFFER_SIZE];
-        // snprintf(msg, sizeof(msg), "%s: ", my_name);
         snprintf(msg, BUFFER_SIZE, "%s: %s", my_name, buffer);
-        printf("sent msg: %s\n", msg);
         send(sock, msg, strlen(msg), 0);
-        // printf("You: ");
-        // printf("\e[1A\e[2K\r");
     }
 
     pthread_mutex_destroy(&mutex);
     close(sock);
+
     return 0;
 }
 
