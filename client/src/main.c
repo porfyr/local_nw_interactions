@@ -16,30 +16,35 @@ void *receive_messages(void *socket) {
 
     while ((valread = read(sock, buffer, BUFFER_SIZE)) > 0) {
         buffer[valread] = '\0';
-        // pthread_mutex_lock(&mutex);
-        printf("\e[1A\e[2K\r");
-        // printf("\r");
-        printf("Received: %s\n", buffer);
-        // printf("you: ");
-        // usleep(10000);
-        fflush(stdout);
-        // pthread_mutex_unlock(&mutex);
+            // pthread_mutex_lock(&mutex);
+        // printf("\e[1A\e[2K\r");
+            // printf("\r");
+        printf("%s\n", buffer);
+            // printf("you: ");
+            // usleep(10000);
+        // fflush(stdout);
+            // pthread_mutex_unlock(&mutex);
     }
 
     return NULL;
 }
 
-int main() {
-    char my_name[NAME_SIZE];
+int set_name(char *my_name) {
     char format_string[8];
     snprintf(format_string, sizeof(format_string), "%%%ds", NAME_SIZE-1);
-    printf("Your name: ");
+    printf("Type your name: ");
     if (scanf(format_string, my_name) < 0)
         perror("scanf failed");
     if (!strncmp(my_name, "You:", 5))
         perror("Name can't be \"You:\"");
+    return 1;
+}
 
-    printf("name: %s\n", my_name);
+int main() {
+    char my_name[NAME_SIZE];
+    set_name(&my_name);
+
+    printf("-- Got name: %s --\n", my_name);
 
     int sock;
     struct sockaddr_in server_address;
@@ -77,9 +82,10 @@ int main() {
         fgets(buffer, BUFFER_SIZE-NAME_SIZE, stdin);
         // snprintf(format_string, sizeof(format_string), "%%%ds", NAME_SIZE-1);
         char msg[BUFFER_SIZE];
-        snprintf(msg, sizeof(msg), "%s: ", my_name);
+        // snprintf(msg, sizeof(msg), "%s: ", my_name);
+        snprintf(msg, BUFFER_SIZE, "%s: %s", my_name, buffer);
         printf("sent msg: %s\n", msg);
-        send(sock, buffer, strlen(buffer), 0);
+        send(sock, msg, strlen(msg), 0);
         // printf("You: ");
         // printf("\e[1A\e[2K\r");
     }
