@@ -8,15 +8,27 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 #define NAME_SIZE 32
-#define MAX_CONNECTIONS 2
+#define MAX_CONNECTIONS 4
 
 typedef struct {
     int *descriptors;
-    pthread_mutex_t mutex;
-    int curr_connections;
+    int count;
+    pthread_mutex_t mutex_descriptors;
+    pthread_mutex_t mutex_full_connections;
 } Client_sockets;
 
 typedef struct {
     Client_sockets client_sockets;
     int sock;
-} HC_arg;
+} handle_client_arg_t;
+
+typedef struct {
+    pthread_mutex_t mutex;
+    int sock;
+} sigaction_context_t;
+
+typedef struct {
+    char *buffer;
+    char *my_name;
+    int sock;
+} send_msgs_args_t;
