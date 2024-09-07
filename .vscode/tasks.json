@@ -1,0 +1,30 @@
+{
+    "tasks": [
+        {
+            "label": "Build server",
+            "type": "shell",
+            "command": "cd server && make && cd ..",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build client",
+            "type": "shell",
+            "command": "cd client && make && cd ..",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run server",
+            "type": "shell",
+            "command": "cd server && make run && cd ..",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run client",
+            "type": "shell",
+            "command": "cd client && make run && cd ..",
+            "problemMatcher": []
+        }
+    ]
+}

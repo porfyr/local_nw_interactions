@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wno-unused-variable -Wno-unused-function -Wno-main # -lcurses # -Wextra -g
+CFLAGS = -Wall -Wno-unused-variable -Wno-unused-function -Wno-main -g # -lcurses # -Wextra
 SRC_DIR = ./src
 OBJ_DIR = ./obj
 BIN_DIR = ./bin

@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #define PORT 8080
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 256
 #define NAME_SIZE 32
 #define MAX_CONNECTIONS 4
 
@@ -15,10 +15,13 @@ typedef struct {
     int count;
     pthread_mutex_t mutex_descriptors;
     pthread_mutex_t mutex_full_connections;
-} Client_sockets;
+    struct sockaddr_in *address;
+    int server_fd;
+    pthread_t *th_ids;
+} client_sockets_t;
 
 typedef struct {
-    Client_sockets client_sockets;
+    client_sockets_t *client_sockets;
     int sock;
 } handle_client_arg_t;
 
