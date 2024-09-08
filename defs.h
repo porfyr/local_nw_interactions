@@ -13,8 +13,8 @@
 typedef struct {
     int *descriptors;
     int count;
-    pthread_mutex_t mutex_descriptors;
-    pthread_mutex_t mutex_full_connections;
+    pthread_mutex_t descriptors_mutex;
+    pthread_mutex_t full_connections_mutex;
     struct sockaddr_in *address;
     int server_fd;
     pthread_t *th_ids;
